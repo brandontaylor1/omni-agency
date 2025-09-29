@@ -1,0 +1,8 @@
+{
+  "/not-found": "app/not-found.js",
+  "/api/user/organization/route": "app/api/user/organization/route.js",
+  "/dashboard/athletes/[id]/page": "app/dashboard/athletes/[id]/page.js",
+  "/dashboard/athletes/new/page": "app/dashboard/athletes/new/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/athletes/page": "app/dashboard/athletes/page.js"
+}
