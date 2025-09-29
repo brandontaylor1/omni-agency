@@ -19,9 +19,9 @@ export async function GET() {
       }
     );
 
-    // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    // Check authentication using getUser() which verifies the session with the server
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -37,7 +37,7 @@ export async function GET() {
 
         // Fallback to a direct SQL query (bypass RLS entirely)
         const { data: rawData, error: sqlError } = await supabase
-          .rpc('get_user_org_details', { user_uuid: session.user.id });
+          .rpc('get_user_org_details', { user_uuid: user.id });
 
         if (sqlError || !rawData) {
           console.error('Fallback SQL query failed:', sqlError);

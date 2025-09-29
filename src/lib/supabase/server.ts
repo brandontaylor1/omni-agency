@@ -24,6 +24,18 @@ export function createServerSupabaseClient() {
   );
 }
 
+// Helper function to get the authenticated user
+export async function getAuthenticatedUser() {
+  const supabase = createServerSupabaseClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return { user: null, error };
+  }
+
+  return { user, error: null };
+}
+
 // Helper to create an admin client for server operations
 export function createServerAdminClient() {
   const cookieStore = cookies();

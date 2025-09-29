@@ -23,10 +23,16 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     const fetchOrganizationData = async () => {
         try {
             setIsLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
+            // Use getUser() which verifies the session with the server
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-            if (!user) {
+            if (userError || !user) {
+                console.error('Auth error:', userError);
                 setIsLoading(false);
+                // Clear organization data if not authenticated
+                setOrganizationId(null);
+                setOrganizationName(null);
+                setUserRole(null);
                 return;
             }
 
@@ -65,15 +71,19 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // No fallback method - API route is the only way to fetch organization data
-
     // Initial fetch
     useEffect(() => {
         fetchOrganizationData();
 
-        // Subscribe to auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-            fetchOrganizationData();
+        // Subscribe to auth changes with specific event handling
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                fetchOrganizationData();
+            } else if (event === 'SIGNED_OUT') {
+                setOrganizationId(null);
+                setOrganizationName(null);
+                setUserRole(null);
+            }
         });
 
         return () => {
