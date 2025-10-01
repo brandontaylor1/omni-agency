@@ -5,13 +5,6 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
 
 export interface Database {
   public: {
@@ -155,6 +148,82 @@ export interface Database {
           slug?: string
         }
         Relationships: []
+      }
+      calendar_events: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          organization_id: string
+          athlete_id: string | null
+          title: string
+          description: string | null
+          date: string
+          type: 'athlete' | 'meeting' | 'travel' | 'game' | 'signing' | 'appearance' | 'football_camp' | 'other'
+          fulfilled: boolean
+          created_by: string
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          organization_id: string
+          athlete_id?: string | null
+          title: string
+          description?: string | null
+          date: string
+          type: 'athlete' | 'meeting' | 'travel' | 'game' | 'signing' | 'appearance' | 'football_camp' | 'other'
+          fulfilled?: boolean
+          created_by: string
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          organization_id?: string
+          athlete_id?: string | null
+          title?: string
+          description?: string | null
+          date?: string
+          type?: 'athlete' | 'meeting' | 'travel' | 'game' | 'signing' | 'appearance' | 'football_camp' | 'other'
+          fulfilled?: boolean
+          created_by?: string
+          metadata?: Json | null
+        }
+      }
+      calendar_tasks: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          organization_id: string
+          title: string
+          date: string
+          completed: boolean
+          created_by: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          organization_id: string
+          title: string
+          date: string
+          completed?: boolean
+          created_by?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          organization_id?: string
+          title?: string
+          date?: string
+          completed?: boolean
+          created_by?: string
+        }
       }
     }
     Views: {

@@ -45,7 +45,8 @@ import {
 import { 
   POSITIONS, 
   NIL_TIERS, 
-  GRADES 
+  GRADES,
+  PROFESSIONAL_DEVELOPMENT_CATEGORIES
 } from "@/types/athlete";
 import { supabase } from "@/lib/supabase/client";
 
@@ -72,6 +73,14 @@ type AthleteEvent = {
   fulfilled: boolean;
 };
 
+// Define professional development activity type
+type ProfessionalDevelopmentActivity = {
+  id: string;
+  category: string;
+  date: Date;
+  notes?: string;
+};
+
 export default function NewAthletePage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +94,12 @@ export default function NewAthletePage() {
     fulfilled: false
   });
   const [expandedReport, setExpandedReport] = useState<number | null>(null);
+  const [professionalDev, setProfessionalDev] = useState<ProfessionalDevelopmentActivity[]>([]);
+  const [isProfDevDialogOpen, setIsProfDevDialogOpen] = useState(false);
+  const [currentProfDev, setCurrentProfDev] = useState<Partial<ProfessionalDevelopmentActivity>>({
+    category: "",
+    notes: ""
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -264,6 +279,35 @@ export default function NewAthletePage() {
     setExpandedReport(prev => prev === index ? null : index);
   };
 
+  // Professional Development handlers
+  const handleProfDevChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCurrentProfDev(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfDevSelectChange = (value: string) => {
+    setCurrentProfDev(prev => ({ ...prev, category: value }));
+  };
+
+  const handleAddProfDev = () => {
+    if (!currentProfDev.category || !date) return;
+
+    const newActivity: ProfessionalDevelopmentActivity = {
+      id: Date.now().toString(), // Simple ID generation
+      category: currentProfDev.category,
+      date: date,
+      notes: currentProfDev.notes
+    };
+
+    setProfessionalDev(prev => [...prev, newActivity]);
+    setCurrentProfDev({ category: "", notes: "" });
+    setIsProfDevDialogOpen(false);
+  };
+
+  const handleDeleteProfDev = (id: string) => {
+    setProfessionalDev(prev => prev.filter(activity => activity.id !== id));
+  };
+
 
   // Handle scouting report changes
   const handleScoutingReportChange = (index: number, field: string, value: string) => {
@@ -374,6 +418,11 @@ export default function NewAthletePage() {
           title: event.title,
           description: event.description || null,
           fulfilled: event.fulfilled
+        })) : null,
+        professional_development: professionalDev.length > 0 ? professionalDev.map(activity => ({
+          category: activity.category,
+          date: activity.date.toISOString(),
+          notes: activity.notes || null
         })) : null
       };
 
@@ -932,6 +981,137 @@ export default function NewAthletePage() {
               <p className="text-xs text-muted-foreground">
                 Separate multiple colleges with commas
               </p>
+            </div>
+
+            {/* Professional Development */}
+            <div className="border-t mt-4 pt-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium">Professional Development</h3>
+                <Dialog open={isProfDevDialogOpen} onOpenChange={setIsProfDevDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-7 text-xs">
+                      <Plus className="h-3 w-3 mr-1" /> Add Activity
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Professional Development</DialogTitle>
+                      <DialogDescription>
+                        Record a professional development activity or training
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="prof-dev-category">Category *</Label>
+                        <Select
+                          value={currentProfDev.category}
+                          onValueChange={handleProfDevSelectChange}
+                        >
+                          <SelectTrigger id="prof-dev-category">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PROFESSIONAL_DEVELOPMENT_CATEGORIES.map(category => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="prof-dev-date">Date Attended *</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {date ? format(date, "PPP") : "Select date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={setDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="prof-dev-notes">Notes</Label>
+                        <Textarea
+                          id="prof-dev-notes"
+                          name="notes"
+                          placeholder="Add notes about the activity"
+                          value={currentProfDev.notes || ""}
+                          onChange={handleProfDevChange}
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsProfDevDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" onClick={handleAddProfDev}>
+                        Add Activity
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {professionalDev.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {professionalDev.map(activity => (
+                        <TableRow key={activity.id}>
+                          <TableCell className="font-medium">{activity.category}</TableCell>
+                          <TableCell>{format(activity.date, "MMM d, yyyy")}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">
+                            {activity.notes || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteProfDev(activity.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-xs text-center py-3">
+                  No professional development activities recorded yet
+                </p>
+              )}
             </div>
           </div>
         </div>

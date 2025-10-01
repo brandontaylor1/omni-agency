@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import Sidebar from '@/components/dashboard/sidebar';
-import Header from '@/components/dashboard/header';
-import ClientProviders from '@/components/client-providers';
+import DashboardLayoutClient from './layout-client';
 
 export default async function DashboardLayout({
   children,
@@ -27,16 +25,11 @@ export default async function DashboardLayout({
   const organizations = orgMemberships?.map(membership => membership.organization) || [];
 
   return (
-    <ClientProviders>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar organizations={organizations} />
-        <div className="flex flex-col flex-1 overflow-hidden md:pl-64">
-          <Header user={session.user} />
-          <main className="flex-1 overflow-auto p-4 md:p-6">
-            {children}
-          </main>
-        </div>
-      </div>
-    </ClientProviders>
+    <DashboardLayoutClient
+      user={session.user}
+      organizations={organizations}
+    >
+      {children}
+    </DashboardLayoutClient>
   );
 }

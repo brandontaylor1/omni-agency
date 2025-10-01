@@ -1,5 +1,18 @@
 import { Tables } from './supabase';
 
+export const PROFESSIONAL_DEVELOPMENT_CATEGORIES = [
+  "Emotional Intelligence Training",
+  "Mental Resilience Training",
+  "Biomechanical Testing",
+  "Neurocognitive Training",
+  "Media Training",
+  "Interview Preparation",
+  "Financial Literacy",
+  "Personal Branding",
+  "Leadership Development",
+  "Nutrition Education"
+];
+
 // Type for the Athlete from the database
 export type Athlete = Tables<'athletes'>;
 
@@ -30,4 +43,23 @@ export interface AthleteFilters {
   currentGrade?: Grade | '';
   sortBy?: 'name' | 'position' | 'nilValue' | 'totalContractValue';
   sortDirection?: 'asc' | 'desc';
+  professional_development?: ProfessionalDevelopmentActivity[] | null;
+}
+
+export interface ProfessionalDevelopmentActivity {
+  id?: string;
+  category: string;
+  date: string;
+  notes?: string | null;
+}
+
+export interface BrandPartnership {
+  id: string;
+  date: string;
+  company: string;
+  details: string;
+  monetary_value?: number | null;
+  inkind_value?: number | null;
+  obligations?: string | null;
+  status: 'active' | 'completed' | 'pending' | 'canceled';
 }

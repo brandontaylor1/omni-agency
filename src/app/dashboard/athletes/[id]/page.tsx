@@ -3,13 +3,46 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, Trash } from "lucide-react";
+import { ArrowLeft, Edit, Trash, Check, Clock, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Athlete } from "@/types/athlete";
 import { formatCurrency, formatHeight } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AthletePageProps {
   params: {
@@ -277,6 +310,156 @@ export default function AthletePage({ params }: AthletePageProps) {
                 </div>
               </div>
 
+                {/* Brand Partnerships Section */}
+                <div className="mb-6 space-y-2">
+                  <h3 className="font-semibold text-base">Brand Partnerships</h3>
+                  <div className="rounded-md border overflow-hidden">
+                    {athlete.brand_partnerships && athlete.brand_partnerships.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Company</TableHead>
+                              <TableHead>Deliverable Details</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {athlete.brand_partnerships.map((partnership) => (
+                                <Dialog key={partnership.id}>
+                                  <DialogTrigger asChild>
+                                    <TableRow className="cursor-pointer hover:bg-muted/80">
+                                      <TableCell>{new Date(partnership.date).toLocaleDateString()}</TableCell>
+                                      <TableCell className="font-medium">{partnership.company}</TableCell>
+                                      <TableCell className="max-w-[200px] truncate">
+                                        {partnership.details}
+                                      </TableCell>
+                                    </TableRow>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[500px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Brand Partnership</DialogTitle>
+                                      <DialogDescription>
+                                        Update the partnership details with {partnership.company}.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-date" className="text-right">
+                                          Date
+                                        </Label>
+                                        <Input
+                                            id="partnership-date"
+                                            type="date"
+                                            defaultValue={partnership.date.split('T')[0]}
+                                            className="col-span-3"
+                                            readOnly
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-company" className="text-right">
+                                          Company
+                                        </Label>
+                                        <Input
+                                            id="partnership-company"
+                                            defaultValue={partnership.company}
+                                            className="col-span-3"
+                                            readOnly
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-details" className="text-right">
+                                          Details
+                                        </Label>
+                                        <Textarea
+                                            id="partnership-details"
+                                            defaultValue={partnership.details}
+                                            className="col-span-3"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-monetary" className="text-right">
+                                          Monetary Value
+                                        </Label>
+                                        <Input
+                                            id="partnership-monetary"
+                                            type="number"
+                                            defaultValue={partnership.monetary_value || ""}
+                                            className="col-span-3"
+                                            placeholder="$0.00"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-inkind" className="text-right">
+                                          In-kind Value
+                                        </Label>
+                                        <Input
+                                            id="partnership-inkind"
+                                            type="number"
+                                            defaultValue={partnership.inkind_value || ""}
+                                            className="col-span-3"
+                                            placeholder="$0.00"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-obligations" className="text-right">
+                                          Obligations
+                                        </Label>
+                                        <Textarea
+                                            id="partnership-obligations"
+                                            defaultValue={partnership.obligations || ""}
+                                            className="col-span-3"
+                                            placeholder="Posting, signing, appearances, etc."
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="partnership-status" className="text-right">
+                                          Status
+                                        </Label>
+                                        <Select defaultValue={partnership.status}>
+                                          <SelectTrigger className="col-span-3">
+                                            <SelectValue placeholder="Select status" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="pending">Pending</SelectItem>
+                                            <SelectItem value="completed">Completed</SelectItem>
+                                            <SelectItem value="canceled">Canceled</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button type="submit">Save changes</Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                            ))}
+                          </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="py-8 text-center text-muted-foreground">
+                          <p>No brand partnerships found</p>
+                          <Link href={`/dashboard/athletes/${id}/partnerships/new`}>
+                            <Button variant="outline" size="sm" className="mt-2">
+                              Add Partnership
+                            </Button>
+                          </Link>
+                        </div>
+                    )}
+                  </div>
+                  {athlete.brand_partnerships && athlete.brand_partnerships.length > 0 && (
+                      <div className="flex justify-end">
+                        <Link href={`/dashboard/athletes/${id}/partnerships/new`}>
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-4 w-4 mr-1" /> Add Partnership
+                          </Button>
+                        </Link>
+                      </div>
+                  )}
+                </div>
+
+
+
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <h2 className="font-semibold text-lg">Active Deals</h2>
@@ -295,6 +478,119 @@ export default function AthletePage({ params }: AthletePageProps) {
                   </Link>
                 </div>
               </div>
+
+              {/* Events section */}
+              {athlete.events && athlete.events.length > 0 && (
+                <div className="border rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-lg">Scheduled Events</h2>
+                    <Link href={`/dashboard/athletes/${id}/edit`}>
+                      <Button variant="link" size="sm" className="h-auto p-0">
+                        Manage Events
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
+                    {athlete.events.map((event, index) => {
+                      const eventDate = new Date(event.date);
+                      const isOverdue = !event.fulfilled && eventDate < new Date();
+
+                      return (
+                        <div
+                          key={index}
+                          className={`flex items-start justify-between p-3 rounded-md border ${
+                            event.fulfilled
+                              ? 'bg-green-50 dark:bg-green-900/10'
+                              : isOverdue
+                              ? 'bg-amber-50 dark:bg-amber-900/10'
+                              : 'bg-white dark:bg-gray-950'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`mt-1 p-1.5 rounded-full ${
+                                event.fulfilled
+                                  ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                                  : 'bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'
+                              }`}
+                            >
+                              {event.fulfilled ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Clock className="h-3 w-3" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">{event.title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(event.date).toLocaleDateString()} at{" "}
+                                {new Date(event.date).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                              {event.type === 'game' && event.metadata && (
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    vs {event.metadata.opponent} ({event.metadata.location})
+                                    {event.metadata.college && ` - ${event.metadata.college}`}
+                                  </p>
+                                  {event.metadata.attending_members?.length > 0 && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Users className="h-3 w-3" />
+                                            <span>
+                                              {event.metadata.attending_members[0].name}
+                                              {event.metadata.attending_members.length > 1 &&
+                                                ` +${event.metadata.attending_members.length - 1}`}
+                                            </span>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="p-2 max-w-[300px]">
+                                          <div className="space-y-2">
+                                            {event.metadata.attending_members.map((member) => (
+                                              <div key={member.id} className="text-xs">
+                                                <div className="font-semibold">{member.name} ({member.type})</div>
+                                                {member.email && (
+                                                  <div className="text-muted-foreground">{member.email}</div>
+                                                )}
+                                                {member.phone && (
+                                                  <div className="text-muted-foreground">{member.phone}</div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                              )}
+                              {event.description && (
+                                <p className="text-sm mt-1 text-muted-foreground">
+                                  {event.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Badge
+                            variant={event.fulfilled ? "success" : isOverdue ? "outline" : "secondary"}
+                            className="text-xs"
+                          >
+                            {event.fulfilled
+                              ? "Completed"
+                              : isOverdue
+                              ? "Overdue"
+                              : "Scheduled"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -328,8 +624,41 @@ export default function AthletePage({ params }: AthletePageProps) {
                   {new Date(athlete.updated_at).toLocaleDateString()}
                 </span>
               </div>
+
+              {/* Professional Development Summary */}
+              {athlete.professional_development && athlete.professional_development.length > 0 && (
+                <div className="border rounded-lg p-4 space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-lg">Professional Development</h2>
+                    <Link href={`/dashboard/athletes/${id}/edit`}>
+                      <Button variant="link" size="sm" className="h-auto p-0">
+                        Edit
+                      </Button>
+                    </Link>
+                  </div>
+
+                  <div className="space-y-2">
+                    {/* Group activities by category and count them */}
+                    {Object.entries(
+                      athlete.professional_development.reduce((acc, activity) => {
+                        acc[activity.category] = (acc[activity.category] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)
+                    ).map(([category, count]) => (
+                      <div key={category} className="flex justify-between items-center py-1 border-b">
+                        <span>{category}</span>
+                        <Badge variant="outline">{count} {count === 1 ? 'session' : 'sessions'}</Badge>
+                      </div>
+                    ))}
+
+                    <div className="text-right text-xs text-muted-foreground mt-2">
+                      Last session: {new Date(Math.max(...athlete.professional_development.map(a => 
+                        new Date(a.date).getTime()))).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
 
           <div className="border rounded-lg p-4 space-y-4">
             <h2 className="font-semibold text-lg">Recent Activity</h2>
@@ -360,6 +689,7 @@ export default function AthletePage({ params }: AthletePageProps) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

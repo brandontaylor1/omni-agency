@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Organization {
   id: string;
@@ -12,11 +15,18 @@ interface Organization {
 
 interface SidebarProps {
   organizations: Organization[];
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export default function Sidebar({ organizations }: SidebarProps) {
+export default function Sidebar({ organizations, onCollapsedChange }: SidebarProps) {
   const pathname = usePathname();
   const currentOrg = organizations[0]; // For now, use the first organization
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleCollapse = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    onCollapsedChange?.(collapsed);
+  };
 
   const navItems = [
     {
@@ -131,38 +141,59 @@ export default function Sidebar({ organizations }: SidebarProps) {
   ];
 
   return (
-    <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-      <div className="flex-1 flex flex-col min-h-0 border-r bg-white dark:bg-gray-950">
-        <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-xl font-bold">Omni Agency</h1>
-          </div>
-          {currentOrg && (
-            <div className="px-4 mt-4">
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">Organization</p>
-                <p className="text-sm font-medium truncate">{currentOrg.name}</p>
-              </div>
-            </div>
-          )}
-          <nav className="mt-5 flex-1 px-2 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
+    <div
+      className={cn(
+        'fixed h-[calc(100vh-4rem)] border-r bg-card px-4 pt-4 flex flex-col transition-all duration-300',
+        isCollapsed ? 'w-[100px]' : 'w-[240px]'
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -right-4 top-6 h-8 w-8 rounded-full border bg-background"
+        onClick={() => handleCollapse(!isCollapsed)}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </Button>
+
+      <div className="space-y-4 py-4">
+        <div className="py-2">
+          <h2
+            className={cn(
+              'text-lg font-semibold tracking-tight transition-all duration-300',
+              isCollapsed && 'opacity-0'
+            )}
+          >
+            {currentOrg?.name || 'Dashboard'}
+          </h2>
+        </div>
+        <nav className="space-y-2">
+          {navItems.map((item, index) => (
+            <Link
+              key={index}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent',
+                pathname === item.href ? 'bg-accent' : 'transparent',
+                isCollapsed && 'justify-center px-2'
+              )}
+            >
+              {item.icon}
+              <span
                 className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                  pathname === item.href
-                    ? "bg-gray-100 dark:bg-gray-800 text-primary"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  'transition-all duration-300',
+                  isCollapsed && 'hidden opacity-0 w-0'
                 )}
               >
-                {item.icon}
-                <span className="ml-3">{item.title}</span>
-              </Link>
-            ))}
-          </nav>
-        </div>
+                {item.title}
+              </span>
+            </Link>
+          ))}
+        </nav>
       </div>
     </div>
   );
