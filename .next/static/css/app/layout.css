@@ -1683,9 +1683,6 @@ video {
 .pb-2 {
   padding-bottom: 0.5rem;
 }
-.pl-2 {
-  padding-left: 0.5rem;
-}
 .pl-8 {
   padding-left: 2rem;
 }
@@ -2668,20 +2665,8 @@ video {
 
 @media (min-width: 768px) {
 
-  .md\:col-span-1 {
-    grid-column: span 1 / span 1;
-  }
-
   .md\:col-span-2 {
     grid-column: span 2 / span 2;
-  }
-
-  .md\:col-span-4 {
-    grid-column: span 4 / span 4;
-  }
-
-  .md\:col-span-3 {
-    grid-column: span 3 / span 3;
   }
 
   .md\:inline-block {

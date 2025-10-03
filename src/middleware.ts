@@ -44,6 +44,35 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
+  // Role-based access control for dashboard routes
+  if (session && req.nextUrl.pathname.startsWith('/dashboard')) {
+    // Example: extract org_id from query or session (customize as needed)
+    const orgId = req.nextUrl.searchParams.get('org') || session.user.org_id;
+    if (orgId) {
+      // Fetch org_membership for this user
+      const { data: orgMember, error: orgMemberError } = await supabase
+        .from('org_members')
+        .select('role')
+        .eq('org_id', orgId)
+        .eq('user_id', session.user.id)
+        .single();
+      if (!orgMember || orgMemberError) {
+        // Not a member of this org, redirect to dashboard home
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+      // Example: restrict access to athlete edit page to certain roles
+      if (
+        req.nextUrl.pathname.includes('/athletes/') &&
+        req.nextUrl.pathname.includes('/edit') &&
+        !['owner', 'director_admin', 'director'].includes(orgMember.role)
+      ) {
+        // Insufficient permission
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+      // Add more route/role checks as needed
+    }
+  }
+
   return res;
 }
 

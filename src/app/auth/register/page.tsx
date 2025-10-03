@@ -53,15 +53,40 @@ export default function RegisterPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Create the organization and set user as owner using server action
-        // This will call the API route that uses the service role key
+        // 2. Check for pending invitation
+        const { data: invitation, error: invitationError } = await supabase
+          .from('organization_invitations')
+          .select('*')
+          .eq('email', email)
+          .is('accepted_at', null)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (invitation && !invitationError) {
+          // Join existing organization with specified role
+          await supabase.from('org_members').insert({
+            org_id: invitation.org_id,
+            user_id: authData.user.id,
+            role: invitation.role,
+            invited_by: invitation.invited_by,
+            invited_at: invitation.created_at,
+            joined_at: new Date().toISOString(),
+          });
+          // Mark invitation as accepted
+          await supabase.from('organization_invitations').update({
+            accepted_at: new Date().toISOString()
+          }).eq('id', invitation.id);
+          router.push('/auth/verify');
+          return;
+        }
+
+        // 3. No invitation: create new organization and set user as owner
         const orgSlug = orgName
           .toLowerCase()
           .replace(/[^a-z0-9]/g, '-')
           .replace(/-+/g, '-')
           .replace(/^-|-$/g, '');
 
-        // Using fetch to call the API route that will use service role permissions
         const response = await fetch('/api/organizations/create', {
           method: 'POST',
           headers: {
