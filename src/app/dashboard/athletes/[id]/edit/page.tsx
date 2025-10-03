@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useOrganization } from '@/contexts/OrganizationContext';
 import Link from "next/link";
-import { ArrowLeft, Plus, Calendar as CalendarIcon, X, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, Calendar as CalendarIcon, X, Check, ChevronDown, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,7 +172,10 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
     nfl_contract_years: "",
     nfl_contract_value: "",
     nfl_contract_aav: "",
-    nfl_value_grade: ""
+    nfl_value_grade: "",
+    revenue_sharing_school_tier: "",
+    revenue_sharing_value: "",
+    revenue_sharing_total_value: "",
   });
 
   // Get organization ID for the form
@@ -248,7 +251,10 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
           nfl_contract_years: data.nfl_contract_years?.toString() || "",
           nfl_contract_value: data.nfl_contract_value?.toString() || "",
           nfl_contract_aav: data.nfl_contract_aav?.toString() || "",
-          nfl_value_grade: data.nfl_value_grade || ""
+          nfl_value_grade: data.nfl_value_grade || "",
+          revenue_sharing_school_tier: data.revenue_sharing_school_tier || "",
+          revenue_sharing_value: data.revenue_sharing_value?.toString() || "",
+          revenue_sharing_total_value: data.revenue_sharing_total_value?.toString() || "",
         });
 
         // Handle events if they exist
@@ -558,7 +564,10 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
           inkind_value: partnership.inkind_value ? parseInt(partnership.inkind_value) : null,
           obligations: partnership.obligations || null,
           status: partnership.status
-        })) : null
+        })) : null,
+        revenue_sharing_school_tier: formData.revenue_sharing_school_tier || null,
+        revenue_sharing_value: formData.revenue_sharing_value ? parseInt(formData.revenue_sharing_value) : null,
+        revenue_sharing_total_value: formData.revenue_sharing_total_value ? parseInt(formData.revenue_sharing_total_value) : null,
       };
 
       // Update athlete
@@ -590,7 +599,7 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <Button 
           variant="outline" 
@@ -911,7 +920,7 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="father_address" className="text-xs">Address</Label>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
+                    <Checkbox
                       id="same_address_as_mother"
                       name="same_address_as_mother"
                       checked={formData.same_address_as_mother}
@@ -1254,7 +1263,7 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
         {/* NIL & Additional Information */}
         <div className="pt-4 border-t grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
-            <h2 className="text-xl font-semibold mb-4">NIL & Additional Information</h2>
+            <h2 className="text-xl font-semibold mb-4">School NIL & Additional Information</h2>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
@@ -1315,15 +1324,64 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
             </div>
           </div>
 
+          {/* Revenue Sharing */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <h2 className="font-semibold text-lg">Revenue Sharing</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="revenue_sharing_school_tier">School Tier</Label>
+                <Select
+                  value={formData.revenue_sharing_school_tier || ""}
+                  onValueChange={(value) => handleSelectChange("revenue_sharing_school_tier", value)}
+                >
+                  <SelectTrigger id="revenue_sharing_school_tier">
+                    <SelectValue placeholder="Select Tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NIL_TIERS.map(tier => (
+                      <SelectItem key={tier} value={tier}>
+                        {tier}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="revenue_sharing_value">Value ($)</Label>
+                <Input
+                  id="revenue_sharing_value"
+                  name="revenue_sharing_value"
+                  type="number"
+                  placeholder="Enter value"
+                  value={formData.revenue_sharing_value}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="revenue_sharing_total_value">Total Value ($)</Label>
+                <Input
+                  id="revenue_sharing_total_value"
+                  name="revenue_sharing_total_value"
+                  type="number"
+                  placeholder="Enter total value"
+                  value={formData.revenue_sharing_total_value}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Brand Partnerships Section */}
           <div className="space-y-4 border-t pt-4 mt-4">
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">Brand Partnerships</Label>
               <Dialog open={isPartnershipDialogOpen} onOpenChange={setIsPartnershipDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
                     className="h-8"
                   >
@@ -1516,9 +1574,9 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Player Scouting Reports</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setFormData(prev => ({
@@ -1539,8 +1597,8 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
                       <div className="flex-1 cursor-pointer" onClick={() => toggleExpandReport(index)}>
                         <div className="flex justify-between items-center">
                           <div className="truncate flex-1">
-                            {report.evaluation ? 
-                              (expandedReport === index ? report.evaluation : report.evaluation.substring(0, 50) + (report.evaluation.length > 50 ? "..." : "")) : 
+                            {report.evaluation ?
+                              (expandedReport === index ? report.evaluation : report.evaluation.substring(0, 50) + (report.evaluation.length > 50 ? "..." : "")) :
                               <span className="text-muted-foreground italic">No evaluation</span>
                             }
                           </div>
@@ -1554,10 +1612,10 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => removeScoutingReport(index)}
                         className="ml-2 h-8 w-8 p-0"
                       >
@@ -1622,7 +1680,7 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
 
               <div className="flex items-end pb-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
+                  <Checkbox
                     id="agency_interest"
                     name="agency_interest"
                     checked={formData.agency_interest}
@@ -1857,8 +1915,8 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
                               )}
                             </TableCell>
                             <TableCell>
-                              <button 
-                                type="button" 
+                              <button
+                                type="button"
                                 onClick={() => handleToggleFulfilled(event.id)}
                                 className={`p-1 rounded-full ${event.fulfilled ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}
                               >
@@ -1866,9 +1924,9 @@ export default function EditAthletePage({ params }: EditAthletePageProps) {
                               </button>
                             </TableCell>
                             <TableCell>
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
+                              <Button
+                                type="button"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteEvent(event.id)}
                               >

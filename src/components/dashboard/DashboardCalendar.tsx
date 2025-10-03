@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { DashboardBigCalendar } from "@/components/ui/dashboard-big-calendar";
 import type { CalendarEventWithAthlete } from "@/types/calendar";
 import EventModal from "./EventModal";
+import { supabase } from "@/lib/supabase/client";
+import type { Athlete } from "@/types/athlete";
 
 type DashboardCalendarProps = {
   selectedDate: Date;
@@ -15,6 +17,15 @@ type DashboardCalendarProps = {
 export default function DashboardCalendar({ selectedDate, onDateSelect, events, onEventsChange }: DashboardCalendarProps) {
   const [showModal, setShowModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventWithAthlete | null>(null);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
+
+  useEffect(() => {
+    async function fetchAthletes() {
+      const { data, error } = await supabase.from("athletes").select("*");
+      if (data) setAthletes(data);
+    }
+    fetchAthletes();
+  }, []);
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalendarEventWithAthlete[]> = {};
@@ -73,6 +84,7 @@ export default function DashboardCalendar({ selectedDate, onDateSelect, events, 
           onDayClick={handleDayClick}
           onDayDoubleClick={handleDayDoubleClick}
           handleEventClick={handleEventClick}
+          athletes={athletes}
         />
       </div>
 

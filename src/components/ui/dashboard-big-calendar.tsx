@@ -7,6 +7,7 @@ import type { DayPickerSingleProps } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import type { CalendarEventWithAthlete } from "@/types/calendar"
+import type { Athlete } from "@/types/athlete";
 import {
   Tooltip,
   TooltipContent,
@@ -19,6 +20,7 @@ export interface DashboardBigCalendarProps extends Omit<DayPickerSingleProps, 'c
   handleEventClick?: (event: CalendarEventWithAthlete) => void;
   onDayClick?: (date: Date) => void;
   onDayDoubleClick?: (date: Date) => void;
+  athletes?: Athlete[];
 }
 
 const DashboardBigCalendar = React.forwardRef<HTMLDivElement, DashboardBigCalendarProps>(
@@ -30,6 +32,7 @@ const DashboardBigCalendar = React.forwardRef<HTMLDivElement, DashboardBigCalend
     handleEventClick,
     onDayClick,
     onDayDoubleClick,
+    athletes,
     ...props
   }, ref) {
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -104,18 +107,33 @@ const DashboardBigCalendar = React.forwardRef<HTMLDivElement, DashboardBigCalend
               const key = date.toISOString().split('T')[0];
               const events = eventsByDate[key] || [];
 
+              // Helper to get athlete name robustly
+              const getAthleteName = (event: CalendarEventWithAthlete) => {
+                if (event.athlete_name) return event.athlete_name;
+                if (event.athlete_id && athletes && athletes.length > 0) {
+                  const athlete = athletes.find(a => a.id === event.athlete_id);
+                  if (athlete) {
+                    if (athlete.first_name && athlete.last_name) {
+                      return `${athlete.first_name} ${athlete.last_name}`;
+                    }
+                    // No fallback to athlete.name, just use Unknown
+                  }
+                }
+                return "Unknown";
+              };
+
               return (
                 <div className="h-full w-full flex flex-col p-2 border rounded-lg hover:bg-accent/10 transition-colors">
-                  <span className="text-sm font-medium">
+                  <span className="text-xl font-extralight">
                     {date.getDate()}
                   </span>
                   <div className="flex flex-col gap-1 mt-1 overflow-hidden">
                     {events.map((event, idx) => (
                       <div
-                        key={idx}
+                        key={event.id || idx}
                         className={cn(
                           "flex items-center gap-1.5 group",
-                          event.type === 'game' && "bg-gray-100 p-1 rounded"
+                          event.type === 'game' && "bg-black text-white p-1 rounded"
                         )}
                         onClick={(e) => {
                           e.preventDefault();
@@ -129,29 +147,30 @@ const DashboardBigCalendar = React.forwardRef<HTMLDivElement, DashboardBigCalend
                           className={`flex-shrink-0 h-2 w-2 rounded-full border border-white shadow-sm cursor-pointer group-hover:scale-125 transition-transform ${typeColors[event.type || "other"]}`}
                           title={event.title}
                         />
+                        {/* Show athlete name for athlete/game/signing/appearance/football_camp */}
                         {(event.type === 'athlete' ||
                           event.type === 'game' ||
                           event.type === 'signing' ||
                           event.type === 'appearance' ||
                           event.type === 'football_camp') &&
-                          event.athlete_name && (
+                          (event.athlete_name || (event.athlete_id && athletes && athletes.length > 0)) && (
                           <div className="flex flex-col flex-1 min-w-0">
                             <span
-                              className="text-[10px] text-muted-foreground truncate group-hover:text-foreground transition-colors"
-                              title={`${event.athlete_name} - ${event.title}`}
+                              className="text-[10px] truncate group-hover:text-foreground transition-colors"
+                              title={`${getAthleteName(event)} - ${event.title}`}
                             >
-                              {event.athlete_name}
+                              {getAthleteName(event)}
                             </span>
                             {event.type === 'game' && event.metadata && (
                               <>
-                                <span className="text-[9px] text-muted-foreground">
+                                <span className="text-[9px] ">
                                   vs {event.metadata.opponent} ({event.metadata.location})
                                 </span>
                                 {Array.isArray(event.metadata?.attending_members) && event.metadata.attending_members.length > 0 && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground mt-0.5">
+                                        <div className="flex items-center gap-1 text-[9px] mt-0.5">
                                           <Users className="h-2.5 w-2.5" />
                                           <span className="truncate">
                                             {event.metadata?.attending_members?.[0]?.name}
@@ -180,6 +199,17 @@ const DashboardBigCalendar = React.forwardRef<HTMLDivElement, DashboardBigCalend
                                 )}
                               </>
                             )}
+                          </div>
+                        )}
+                        {/* Show meeting title for meeting events */}
+                        {event.type === 'meeting' && event.title && (
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span
+                              className="text-[10px] truncate group-hover:text-foreground transition-colors"
+                              title={event.title}
+                            >
+                              {event.title}
+                            </span>
                           </div>
                         )}
                       </div>

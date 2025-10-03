@@ -36,6 +36,7 @@ interface EventMetadata {
 export interface CalendarEventWithAthlete extends CalendarEvent {
   athlete_name?: string;
   metadata?: EventMetadata;
+  action_items?: EventActionItem[];
 }
 
 // Game event specific data interface
@@ -44,4 +45,12 @@ export interface GameEventData {
     opponent: string;
     location: GameLocation;
     attending_members: string[];
+}
+
+export interface EventActionItem {
+  id?: string;
+  description: string;
+  assignees: string[];
+  notes?: string;
+  calendar_event_id?: string;
 }

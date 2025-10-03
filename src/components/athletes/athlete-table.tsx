@@ -26,10 +26,14 @@ export function AthleteTable({ athletes }: AthleteTableProps) {
           <TableRow>
             <TableHead className="w-[250px]">Name</TableHead>
             <TableHead>Position</TableHead>
-            <TableHead>Team</TableHead>
-            <TableHead>Grade</TableHead>
-            <TableHead>Height/Weight</TableHead>
+            <TableHead>College</TableHead>
+            <TableHead>NFL Team</TableHead>
+            <TableHead>Class</TableHead>
+            <TableHead>Height</TableHead>
+            <TableHead>Weight</TableHead>
+            <TableHead>Speed</TableHead>
             <TableHead>Hometown</TableHead>
+            <TableHead>High School</TableHead>
             <TableHead>NIL Tier</TableHead>
             <TableHead className="text-right">NIL Value</TableHead>
             <TableHead className="text-right">Total Contracts</TableHead>
@@ -81,17 +85,18 @@ export function AthleteTable({ athletes }: AthleteTableProps) {
                     </Link>
                   </TableCell>
                   <TableCell>{athlete.position}</TableCell>
-                  <TableCell>{athlete.current_team}</TableCell>
+                  <TableCell>{athlete.college}</TableCell>
+                  <TableCell>{athlete.nfl_team}</TableCell>
                   <TableCell>{athlete.current_grade || "N/A"}</TableCell>
                   <TableCell>
-                    {athlete.height_inches 
-                      ? `${Math.floor(athlete.height_inches / 12)}'${athlete.height_inches % 12}"`
-                      : "N/A"}
-                    {athlete.weight_lbs ? ` / ${athlete.weight_lbs} lbs` : ""}
+                    {athlete.height_ft_in}
                   </TableCell>
+                  <TableCell>{athlete.weight_lbs ? `${athlete.weight_lbs} lbs` : "N/A"}</TableCell>
+                  <TableCell>{athlete.speed ? `${athlete.speed}s` : "N/A"}</TableCell>
                   <TableCell>
                     {athlete.hometown || "N/A"}
                   </TableCell>
+                  <TableCell>{athlete.high_school}</TableCell>
                   <TableCell>
                     {athlete.nil_tier ? (
                       <Badge variant={nilTierVariant || "default"}>

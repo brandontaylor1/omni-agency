@@ -10,24 +10,7 @@ import { CalendarIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EventType, GameLocation } from "@/types/calendar";
 import { Athlete } from "@/types/athlete";
-import { ContactType } from "@/types/contact";
-
-export interface BaseContact {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  type: string;
-  org_id: string;
-  created_by?: string;
-}
-
-export interface ExtendedContact extends BaseContact {
-  type: ContactType;
-}
+import { Contact } from "@/types/contact";
 
 export interface SerializedAttendingMember {
   id: string;
@@ -35,6 +18,12 @@ export interface SerializedAttendingMember {
   type: ContactType;
   email?: string | null;
   phone?: string | null;
+}
+
+export interface EventActionItem {
+  description: string;
+  assignees: string[];
+  notes?: string;
 }
 
 export interface EventFormData {
@@ -46,6 +35,7 @@ export interface EventFormData {
   opponent: string;
   location: GameLocation;
   attending_members: SerializedAttendingMember[];
+  action_items?: EventActionItem[];
 }
 
 // Export the interface for proper type inference
@@ -57,7 +47,7 @@ export interface EventModalFormProps {
   selectedTime: string;
   onTimeChange: (time: string) => void;
   athletes: Athlete[];
-  orgContacts: ExtendedContact[];
+  orgContacts: Contact[];
   onCancel: () => void;
   onSave: () => void;
   onDelete?: () => void;
@@ -96,7 +86,7 @@ const EventModalForm = React.forwardRef<HTMLFormElement, EventModalFormProps>((p
     const newMember: SerializedAttendingMember = {
       id: contact.id,
       name: `${contact.first_name} ${contact.last_name}`,
-      type: contact.type,
+      type: contact.contact_type as ContactType,
       email: contact.email,
       phone: contact.phone,
     };
@@ -110,6 +100,30 @@ const EventModalForm = React.forwardRef<HTMLFormElement, EventModalFormProps>((p
     onChange({
       attending_members: form.attending_members.filter(m => m.id !== memberId)
     });
+  };
+
+  // Action Items Handlers
+  const handleActionItemChange = (idx: number, field: keyof EventActionItem, value: any) => {
+    const updated = (form.action_items ?? []).map((item, i) =>
+      i === idx ? { ...item, [field]: value } : item
+    );
+    onChange({ action_items: updated });
+  };
+
+  const handleActionItemAssigneesChange = (idx: number, assignees: string[]) => {
+    const updated = (form.action_items ?? []).map((item, i) =>
+      i === idx ? { ...item, assignees } : item
+    );
+    onChange({ action_items: updated });
+  };
+
+  const handleAddActionItem = () => {
+    onChange({ action_items: [...(form.action_items ?? []), { description: "", assignees: [], notes: "" }] });
+  };
+
+  const handleRemoveActionItem = (idx: number) => {
+    const updated = (form.action_items ?? []).filter((_, i) => i !== idx);
+    onChange({ action_items: updated });
   };
 
   return (
@@ -304,7 +318,85 @@ const EventModalForm = React.forwardRef<HTMLFormElement, EventModalFormProps>((p
           checked={form.fulfilled}
           onChange={(e) => onChange({ fulfilled: e.target.checked })}
         />
-        <label htmlFor="fulfilled" className="text-sm">Completed</label>
+        {/* Wrap label in a fragment to ensure valid JSX */}
+        <span>
+          <label htmlFor="fulfilled" className="text-sm">Completed</label>
+        </span>
+      </div>
+
+      {/* Action Items Section */}
+      <div className="border rounded-lg p-4 mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="font-semibold text-lg">Action Items (optional)</label>
+          <Button type="button" size="sm" onClick={handleAddActionItem}>
+            + Add Action Item
+          </Button>
+        </div>
+        {(form.action_items ?? []).length === 0 && (
+          <p className="text-muted-foreground text-sm">No action items added.</p>
+        )}
+        {(form.action_items ?? []).map((item, idx) => (
+          <div key={idx} className="border rounded p-3 mb-3 bg-gray-50">
+            <div className="flex items-center gap-2 mb-2">
+              <Input
+                placeholder="Action item description"
+                value={item.description}
+                onChange={e => handleActionItemChange(idx, "description", e.target.value)}
+                className="flex-1"
+              />
+              <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveActionItem(idx)}>
+                ×
+              </Button>
+            </div>
+            <div className="mb-2">
+              <label className="block text-xs font-medium mb-1">Assignees (optional)</label>
+              <Select
+                value=""
+                onValueChange={assignee => {
+                  const current = item.assignees || [];
+                  if (!current.includes(assignee)) {
+                    handleActionItemAssigneesChange(idx, [...current, assignee]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignees" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgContacts.map(contact => (
+                    <SelectItem key={contact.id} value={contact.id}>
+                      {contact.first_name} {contact.last_name} ({contact.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Show selected assignees */}
+              <div className="flex flex-wrap gap-1 mt-2">
+                {item.assignees.map(aid => {
+                  const contact = orgContacts.find(c => c.id === aid);
+                  if (!contact) return null;
+                  return (
+                    <span key={aid} className="bg-gray-200 px-2 py-1 rounded text-xs">
+                      {contact.first_name} {contact.last_name}
+                      <button type="button" className="ml-1 text-red-500" onClick={() => handleActionItemAssigneesChange(idx, item.assignees.filter(id => id !== aid))}>
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">Notes/Discussion (optional)</label>
+              <Textarea
+                placeholder="Add notes or discussion points..."
+                value={item.notes ?? ""}
+                onChange={e => handleActionItemChange(idx, "notes", e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

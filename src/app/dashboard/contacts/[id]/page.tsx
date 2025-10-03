@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Contact } from "@/types/contact";
 import { supabase } from "@/lib/supabase/client";
+import { ContactForm } from "@/components/contacts/contact-form";
 
 interface ContactPageProps {
   params: {
@@ -23,6 +24,7 @@ export default function ContactPage({ params }: ContactPageProps) {
   const [contact, setContact] = useState<Contact | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Fetch contact data
   useEffect(() => {
@@ -100,8 +102,29 @@ export default function ContactPage({ params }: ContactPageProps) {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Inline editing logic
+  if (isEditing && contact) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+        <ContactForm
+          contact={contact}
+          onSuccess={(updatedContact) => {
+            setContact(updatedContact);
+            setIsEditing(false);
+          }}
+          onCancel={() => setIsEditing(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <Button 
           variant="outline" 
@@ -114,12 +137,15 @@ export default function ContactPage({ params }: ContactPageProps) {
         </Button>
 
         <div className="flex gap-2">
-          <Link href={`/dashboard/contacts/${id}/edit`}>
-            <Button variant="outline" size="sm" className="flex items-center">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center"
+            onClick={() => setIsEditing(true)}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
           <Button variant="destructive" size="sm" className="flex items-center">
             <Trash className="mr-2 h-4 w-4" />
             Delete

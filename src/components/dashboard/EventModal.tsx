@@ -9,8 +9,8 @@ import { Athlete } from "@/types/athlete";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { ContactType } from "@/types/contact";
-import { EventModalForm, EventFormData, ExtendedContact } from "./EventModalForm";
+import { ContactType, Contact } from "@/types/contact";
+import { EventModalForm, EventFormData } from "./EventModalForm";
 
 interface EventModalProps {
   event?: CalendarEventWithAthlete | null;
@@ -39,7 +39,7 @@ const EventModal = React.forwardRef<HTMLDivElement, EventModalProps>(({
   const { organizationId } = useOrganization();
   const [isEditing, setIsEditing] = useState(!event);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [orgContacts, setOrgContacts] = useState<ExtendedContact[]>([]);
+  const [orgContacts, setOrgContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(event?.date ? new Date(event.date) : date);
   const [selectedTime, setSelectedTime] = useState(event?.date ? format(new Date(event.date), "HH:mm") : "09:00");
@@ -101,7 +101,7 @@ const EventModal = React.forwardRef<HTMLDivElement, EventModalProps>(({
         const typedContacts = contactsResponse.data.map(contact => ({
           ...contact,
           type: contact.type as ContactType
-        })) as ExtendedContact[];
+        })) as Contact[];
         setOrgContacts(typedContacts);
       }
     }
@@ -109,29 +109,20 @@ const EventModal = React.forwardRef<HTMLDivElement, EventModalProps>(({
     fetchData();
   }, [organizationId]);
 
-  const handleFormChange = (updates: Partial<EventFormData>) => {
-    setForm(prev => ({ ...prev, ...updates }));
-  };
-
   const handleSave = async () => {
     if (!organizationId) return;
-
     setLoading(true);
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-
       if (userError || !user?.id) {
         console.error('No authenticated user found');
         return;
       }
-
       // Combine date and time
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const eventDateTime = new Date(selectedDate);
       eventDateTime.setHours(hours, minutes, 0, 0);
-
       const selectedAthlete = athletes.find(a => a.id === form.athlete_id);
-
       const eventData: NewCalendarEvent = {
         organization_id: organizationId,
         title: form.title,
@@ -152,92 +143,37 @@ const EventModal = React.forwardRef<HTMLDivElement, EventModalProps>(({
             email: member.email || null,
             phone: member.phone || null
           }))
-        } : null
-      };
-
-      if (event?.id && isValidUUID(event.id)) {
-        const { error: checkError } = await supabase
-          .from("calendar_events")
-          .select('*')
-          .eq("id", event.id)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error('Error checking event:', checkError);
-          return;
-        }
-
-        const { error: updateError } = await supabase
-          .from("calendar_events")
-          .update(eventData)
-          .eq("id", event.id)
-          .select('*, athlete:athletes(first_name, last_name)')
-          .single();
-
-        if (updateError) {
-          console.error('Error updating event:', updateError);
-          return;
-        }
+        } : null,
+        action_items: form.action_items ?? []
+      } as any;
+      // If editing, include the event id
+      if (event?.id) {
+        eventData.id = event.id;
+      }
+      const response = await fetch('/api/calendar-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: eventData })
+      });
+      if (response.ok) {
+        await response.json(); // Only for side effects, not used
       } else {
-        const { error: insertError } = await supabase
-          .from("calendar_events")
-          .insert(eventData)
-          .select('*, athlete:athletes(first_name, last_name)')
-          .single();
-
-        if (insertError) {
-          console.error('Error creating event:', insertError);
-          return;
+        // Try to parse error if possible, otherwise fallback
+        let errorResult;
+        try {
+          errorResult = await response.json();
+        } catch {
+          errorResult = { error: 'Unknown error occurred' };
         }
+        console.error('Error saving event:', errorResult.error);
+        return;
       }
-
-      // Update athlete's events if necessary
-      if (form.athlete_id && isValidUUID(form.athlete_id)) {
-        await updateAthleteEvents(form.athlete_id, eventData, user.id);
-      }
-
       onEventSaved?.();
       onClose();
     } catch (error) {
       console.error('Error saving event:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateAthleteEvents = async (athleteId: string, eventData: NewCalendarEvent, userId: string) => {
-    const { data: athleteData, error: athleteError } = await supabase
-      .from('athletes')
-      .select('events')
-      .eq('id', athleteId)
-      .single();
-
-    if (!athleteError && athleteData) {
-      const currentEvents = Array.isArray(athleteData.events) ? athleteData.events : [];
-      const eventIndex = currentEvents.findIndex(e => e.id === event?.id);
-
-      const athleteEventData = {
-        id: event?.id,
-        title: eventData.title,
-        date: eventData.date,
-        type: eventData.type,
-        description: eventData.description,
-        fulfilled: eventData.fulfilled,
-        created_by: userId
-      };
-
-      const updatedEvents = eventIndex >= 0
-        ? currentEvents.map((e, i) => i === eventIndex ? athleteEventData : e)
-        : [...currentEvents, athleteEventData];
-
-      const { error: updateError } = await supabase
-        .from('athletes')
-        .update({ events: updatedEvents })
-        .eq('id', athleteId);
-
-      if (updateError) {
-        console.error('Error updating athlete events:', updateError);
-      }
     }
   };
 
@@ -323,6 +259,33 @@ const EventModal = React.forwardRef<HTMLDivElement, EventModalProps>(({
                 <span className="font-semibold">Status:</span>{" "}
                 {event?.fulfilled ? "Completed" : "Scheduled"}
               </div>
+
+              {/* Action Items Section */}
+              {event?.action_items && event.action_items.length > 0 && (
+                <div className="mt-4">
+                  <span className="font-semibold">Action Items:</span>
+                  <div className="space-y-2 mt-2">
+                    {event.action_items.map((item, idx) => (
+                      <div key={idx} className="border rounded p-2 bg-gray-50">
+                        <div><span className="font-semibold">Description:</span> {item.description}</div>
+                        <div>
+                          <span className="font-semibold">Assignees:</span> {
+                            item.assignees && item.assignees.length > 0
+                              ? item.assignees.map((assigneeId) => {
+                                  const contact = orgContacts.find(c => c.id === assigneeId);
+                                  return contact ? `${contact.first_name} ${contact.last_name}` : assigneeId;
+                                }).join(", ")
+                              : "None"
+                          }
+                        </div>
+                        {item.notes && (
+                          <div><span className="font-semibold">Notes:</span> {item.notes}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button

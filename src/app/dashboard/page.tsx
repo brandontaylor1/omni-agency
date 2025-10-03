@@ -16,39 +16,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchCalendarData = useCallback(async () => {
-    if (!organizationId) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
-      // Fetch athletes with their events
-      const { data: athletesData, error: athletesError } = await supabase
-        .from('athletes')
-        .select('*, events')
-        .eq('org_id', organizationId); // Fixed: changed organization_id to org_id
+      // Fetch events from API route to include action_items
+      const response = await fetch('/api/calendar-events');
+      const result = await response.json();
+      let calendarEvents = result.events || [];
 
-      if (athletesError) {
-        console.error('Error fetching athletes:', athletesError);
-      }
-
-      // Fetch calendar events
-      const { data: calendarEvents, error: eventsError } = await supabase
-        .from('calendar_events')
-        .select(`
-          *,
-          athlete:athletes (
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('organization_id', organizationId);
-
-      if (eventsError) {
-        console.error('Error fetching calendar events:', eventsError);
-      }
+      // Process calendar events to include athlete names
+      const processedCalendarEvents = calendarEvents.map((event: any) => ({
+        ...event,
+        athlete_name: event.athlete
+          ? `${event.athlete.first_name} ${event.athlete.last_name}`
+          : event.athlete_name // fallback if already present
+      }));
 
       // Fetch tasks
       const { data: taskData, error: tasksError } = await supabase
@@ -60,37 +41,7 @@ export default function DashboardPage() {
         console.error('Error fetching tasks:', tasksError);
       }
 
-      // Process calendar events to include athlete names
-      const processedCalendarEvents = (calendarEvents || []).map(event => ({
-        ...event,
-        athlete_name: event.athlete
-          ? `${event.athlete.first_name} ${event.athlete.last_name}`
-          : undefined
-      }));
-
-      // Process athlete events
-      const athleteEvents = (athletesData || []).reduce((acc: CalendarEventWithAthlete[], athlete) => {
-        if (athlete.events && Array.isArray(athlete.events)) {
-          const events = athlete.events.map((event: CalendarEvent) => ({
-            ...event,
-            athlete_id: athlete.id,
-            athlete_name: `${athlete.first_name} ${athlete.last_name}`,
-            organization_id: organizationId
-          }));
-          return [...acc, ...events];
-        }
-        return acc;
-      }, []);
-
-      // Combine events, prioritizing calendar_events table entries
-      const allEvents = [...processedCalendarEvents];
-      athleteEvents.forEach((athleteEvent: CalendarEventWithAthlete) => {
-        if (!allEvents.some(e => e.id === athleteEvent.id)) {
-          allEvents.push(athleteEvent);
-        }
-      });
-
-      setEvents(allEvents);
+      setEvents(processedCalendarEvents);
       setTasks(taskData || []);
     } catch (err) {
       console.error('Error fetching calendar data:', err);
@@ -119,38 +70,42 @@ export default function DashboardPage() {
 
   return (
     <div className="h-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome to your {organizationName || 'agency'} dashboard.
-        </p>
-      </div>
+      {/*<div>*/}
+      {/*  <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>*/}
+      {/*  <p className="text-muted-foreground">*/}
+      {/*    Welcome to your {organizationName || 'agency'} dashboard.*/}
+      {/*  </p>*/}
+      {/*</div>*/}
 
       {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 transition-all duration-300">
         {/* Left Column - Agenda and Tasks */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 flex flex-col justify-between">
           {/* Today's Agenda */}
-          <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-semibold text-lg mb-4">Today's Agenda</h2>
-            <DashboardAgenda
-              loading={loading}
-              selectedDate={selectedDate}
-              agendaEvents={agendaEvents}
-              onEventClick={handleEventClick}
-            />
+          <div className='gap-6'>
+            <div className="rounded-lg border bg-card p-4">
+              <h2 className="font-semibold text-lg mb-4">Today's Agenda</h2>
+              <DashboardAgenda
+                  loading={loading}
+                  selectedDate={selectedDate}
+                  agendaEvents={agendaEvents}
+                  onEventClick={handleEventClick}
+              />
+            </div>
+
+            {/* Tasks Panel */}
+            <div className="rounded-lg border bg-card p-4">
+              <h2 className="font-semibold text-lg mb-4">Todo List</h2>
+              <TasksPanel
+                  loading={loading}
+                  selectedDate={selectedDate}
+                  dailyTasks={dailyTasks}
+                  onTasksChange={fetchCalendarData}
+              />
+            </div>
           </div>
 
-          {/* Tasks Panel */}
-          <div className="rounded-lg border bg-card p-4">
-            <h2 className="font-semibold text-lg mb-4">Todo List</h2>
-            <TasksPanel
-              loading={loading}
-              selectedDate={selectedDate}
-              dailyTasks={dailyTasks}
-              onTasksChange={fetchCalendarData}
-            />
-          </div>
+          <h1 className='uppercase tracking-tighter text-5xl'>DASHBOARD</h1>
         </div>
 
         {/* Right Column - Calendar */}
